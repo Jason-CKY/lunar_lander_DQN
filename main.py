@@ -1,5 +1,5 @@
 from Environments.lunar_lander import LunarLanderEnvironment
-from Agents.agent import Q_Agent as Agent
+from Agents.q_agent import Q_Agent as Agent
 from rl_glue import RLGlue
 import numpy as np
 import torch
@@ -38,44 +38,49 @@ def run_experiment(environment, agent, environment_parameters, agent_parameters,
     path = os.path.join("results", "sum_reward_{}".format(save_name))
     np.save(path, agent_sum_reward)
 
-# Run Experiment
+def main():
+    # Run Experiment
 
-# Experiment parameters
-experiment_parameters = {
-    "num_runs" : 1,
-    "num_episodes" : 10,
-    # OpenAI Gym environments allow for a timestep limit timeout, causing episodes to end after 
-    # some number of timesteps. Here we use the default of 1000.
-    "timeout" : 1000
-}
+    # Experiment parameters
+    experiment_parameters = {
+        "num_runs" : 1,
+        "num_episodes" : 10,
+        # OpenAI Gym environments allow for a timestep limit timeout, causing episodes to end after 
+        # some number of timesteps. Here we use the default of 1000.
+        "timeout" : 1000
+    }
 
-# Environment parameters
-environment_parameters = {
-    "record_frequency": 10
-}
+    # Environment parameters
+    environment_parameters = {
+        "record_frequency": 10,
+        "episode_dir": "episodes"
+    }
 
-current_env = LunarLanderEnvironment
+    current_env = LunarLanderEnvironment
 
-# Agent parameters
-device = "cuda" if torch.cuda.is_available() else "cpu"
-agent_parameters = {
-    'network_config': {
-        'state_dim': 8,
-        'hidden_dim': 128,
-        'num_actions': 4
-    },
-    'optimizer_config': {
-        'lr': 1e-3,
-        'betas': (0.9, 0.999)
-    },
-    'device': device,
-    'replay_buffer_size': 50000,
-    'minibatch_size': 8,
-    'num_replay_updates_per_step': 4,
-    'gamma': 0.99,
-    'tau': 0.001
-}
-current_agent = Agent
+    # Agent parameters
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    agent_parameters = {
+        'network_config': {
+            'state_dim': 8,
+            'hidden_dim': 128,
+            'num_actions': 4
+        },
+        'optimizer_config': {
+            'lr': 1e-3,
+            'betas': (0.9, 0.999)
+        },
+        'device': device,
+        'replay_buffer_size': 50000,
+        'minibatch_size': 8,
+        'num_replay_updates_per_step': 4,
+        'gamma': 0.99,
+        'tau': 0.001
+    }
+    current_agent = Agent
 
-# run experiment
-run_experiment(current_env, current_agent, environment_parameters, agent_parameters, experiment_parameters)
+    # run experiment
+    run_experiment(current_env, current_agent, environment_parameters, agent_parameters, experiment_parameters)
+
+if __name__ == '__main__':
+    main()

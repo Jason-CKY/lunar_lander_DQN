@@ -12,7 +12,10 @@ def softmax(action_values, tau=1.0):
     Args:
         action_values (Numpy array): A 2D array of shape (batch_size, num_actions). 
                        The action-values computed by an action-value network.              
-        tau (float): The temperature parameter scalar.
+        tau (float): The temperature parameter scalar. 
+                     𝜏 is the temperature parameter which controls how much the agent focuses on the highest valued 
+                     actions. The smaller the temperature, the more the agent selects the greedy action. 
+                     Conversely, when the temperature is high, the agent selects among actions more uniformly random.
     Returns:
         A 2D array of shape (batch_size, num_actions). Where each column is a probability distribution over
         the actions representing the policy.

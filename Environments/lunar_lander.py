@@ -11,7 +11,7 @@ class LunarLanderEnvironment(BaseEnvironment):
         freq = env_info.get("record_frequency")
         if freq is None:
             freq = 1
-        self.env = gym.wrappers.Monitor(self.env, "episodes", video_callable=lambda episode_id: ((episode_id+1)%freq==0 or episode_id==0))
+        self.env = gym.wrappers.Monitor(self.env, env_info['episode_dir'], video_callable=lambda episode_id: ((episode_id+1)%freq==0 or episode_id==0))
         self.env.seed(0)
     
     def env_start(self):
