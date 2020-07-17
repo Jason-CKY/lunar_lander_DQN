@@ -88,8 +88,6 @@ agent_parameters = {
 
 ## Self implemented Softmax
 
-![Softmax_Equation](images\softmax_equation.PNG)
-
 <img src="images\softmax_equation.PNG"
      alt="Softmax_Equation" />
 
