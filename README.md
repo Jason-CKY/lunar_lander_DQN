@@ -48,9 +48,13 @@ Solved is 200 points.
 
 ### Actions
 Four discrete actions available: 
+
 0: do nothing
+
 1: fire left orientation engine 
+
 2: fire main engine
+
 3: fire right orientation engine
 
 ## Implementation Details
