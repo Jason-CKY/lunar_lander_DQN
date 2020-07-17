@@ -5,6 +5,9 @@ Environment is provided by the openAI gym [1](https://gym.openai.com/envs/LunarL
 
 Base environment and agent is written in RL-Glue standard [2](http://www.jmlr.org/papers/v10/tanner09a.html), providing the library and abstract classes to inherit from for reinforcement learning experiments.
 
+## Updates:
+* Added expected sarsa functionality. Change agent_parameter['name'] to either 'q-learning agent' or 'expected sarsa agent' for each type of learning algorithm.
+
 ## Results
 <table align='center'>
 <tr align='center'>
@@ -12,8 +15,14 @@ Base environment and agent is written in RL-Glue standard [2](http://www.jmlr.or
 <td> last episode </td>
 </tr>
 <tr>
-<td><img src = 'images\sum_rewards.png'> 
-<td><img src = 'episodes\openaigymvideo0122video000499.gif'>
+<td> Q learning agent </td>
+<td><img src = 'images\q_learning_sum_rewards.png'> 
+<td><img src = 'images\q_learning_episode_500.gif'>
+</tr>
+<tr>
+<td> Expected sarsa agent </td>
+<td><img src = 'images\expected_sarsa_sum_rewards.png'> 
+<td><img src = 'images\expected_sarsa_episode_500.gif'>
 </tr>
 </table>
 
@@ -66,6 +75,7 @@ agent_parameters = {
         'lr': 1e-3,
         'betas': (0.9, 0.999)
     },
+    'name': 'expected sarsa agent',
     'device': 'cuda',
     'replay_buffer_size': 50000,
     'minibatch_size': 8,
@@ -74,6 +84,12 @@ agent_parameters = {
     'tau': 0.001
 }
 ```
+
+## Self implemented Softmax
+![Softmax_Equation](images\softmax_equation.PNG)
+
+Implemented own softmax equation to avoid overflow problems from taking exponential of large numbers, using the softmax(x) = softmax(x-c) identity. 
+𝜏 is the temperature parameter which controls how much the agent focuses on the highest valued actions. The smaller the temperature, the more the agent selects the greedy action. Conversely, when the temperature is high, the agent selects among actions more uniformly random.
 
 ## Dependencies
 * [Instructions for installing openAI gym environment in Windows](https://towardsdatascience.com/how-to-install-openai-gym-in-a-windows-environment-338969e24d30)
