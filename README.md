@@ -87,7 +87,11 @@ agent_parameters = {
 ```
 
 ## Self implemented Softmax
+
 ![Softmax_Equation](images\softmax_equation.PNG)
+
+<img src="images\softmax_equation.PNG"
+     alt="Softmax_Equation" />
 
 Implemented own softmax equation to avoid overflow problems from taking exponential of large numbers, using the softmax(x) = softmax(x-c) identity. 
 𝜏 is the temperature parameter which controls how much the agent focuses on the highest valued actions. The smaller the temperature, the more the agent selects the greedy action. Conversely, when the temperature is high, the agent selects among actions more uniformly random.
