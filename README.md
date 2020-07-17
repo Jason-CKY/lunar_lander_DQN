@@ -86,7 +86,7 @@ agent_parameters = {
 }
 ```
 
-## Self implemented Softmax
+## [Self implemented Softmax](https://github.com/Jason-CKY/lunar_lander_DQN/blob/7c0a3a8f581a11128acb9225791563a24a3db10f/Agents/q_agent.py#L199-L239)
 
 <img src="images\softmax_equation.PNG"
      alt="Softmax_Equation" />
