@@ -104,9 +104,6 @@ Implemented own softmax equation to avoid overflow problems from taking exponent
 ```
 git clone https://github.com/Jason-CKY/lunar_lander_DQN.git
 cd lunar_lander_DQN
-```
 Edit experiment parameters in main.py
-```
 python main.py
-python plot.py # for plot output
 ```
