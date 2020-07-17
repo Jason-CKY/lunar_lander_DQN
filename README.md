@@ -13,7 +13,7 @@ Base environment and agent is written in RL-Glue standard [2](http://www.jmlr.or
 </tr>
 <tr>
 <td><img src = 'images\sum_rewards.png'> 
-<td><img src = 'episodes\openaigym.video.0.122.video000499.mp4'>
+<td><img src = 'episodes\openaigymvideo0122video000499.gif'>
 </tr>
 </table>
 
