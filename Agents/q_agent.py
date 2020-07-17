@@ -6,51 +6,9 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 
-def softmax(action_values, tau=1.0):
-    """
-    Uses softmax(x) = softmax(x-c) identity to resolve possible overflow from exponential of large numbers in softmax
-    Args:
-        action_values (Numpy array): A 2D array of shape (batch_size, num_actions). 
-                       The action-values computed by an action-value network.              
-        tau (float): The temperature parameter scalar. 
-                     𝜏 is the temperature parameter which controls how much the agent focuses on the highest valued 
-                     actions. The smaller the temperature, the more the agent selects the greedy action. 
-                     Conversely, when the temperature is high, the agent selects among actions more uniformly random.
-    Returns:
-        A 2D array of shape (batch_size, num_actions). Where each column is a probability distribution over
-        the actions representing the policy.
-    """
-    # Compute the preferences by dividing the action-values by the temperature parameter tau
-    preferences = action_values / tau
-    # Compute the maximum preference across the actions
-    max_preference = np.array([max(preference)/tau for preference in action_values])
-    
-    # Reshape max_preference array which has shape [Batch,] to [Batch, 1]. This allows NumPy broadcasting 
-    # when subtracting the maximum preference from the preference of each action.
-    reshaped_max_preference = max_preference.reshape((-1, 1))
-    
-    # Compute the numerator, i.e., the exponential of the preference - the max preference.
-    exp_preferences = np.array([np.exp(preference-max_preference) for preference, max_preference in zip(preferences, reshaped_max_preference)])
-    # Compute the denominator, i.e., the sum over the numerator along the actions axis.
-    sum_of_exp_preferences = exp_preferences.sum(axis=1)
-    
-    # Reshape sum_of_exp_preferences array which has shape [Batch,] to [Batch, 1] to  allow for NumPy broadcasting 
-    # when dividing the numerator by the denominator.
-    reshaped_sum_of_exp_preferences = sum_of_exp_preferences.reshape((-1, 1))
-    
-    # Compute the action probabilities according to the equation in the previous cell.
-    action_probs = exp_preferences / reshaped_sum_of_exp_preferences
-    
-    # squeeze() removes any singleton dimensions. It is used here because this function is used in the 
-    # agent policy when selecting an action (for which the batch dimension is 1.) As np.random.choice is used in 
-    # the agent policy and it expects 1D arrays, we need to remove this singleton batch dimension.
-    action_probs = action_probs.squeeze()
-
-    return action_probs
-
 class Q_Agent(BaseAgent):
     def __init__(self):
-        self.name = "Q-Learning Agent"
+        pass
     
     def agent_init(self, agent_config):
         """Setup for the agent called when the experiment first starts.
@@ -67,6 +25,9 @@ class Q_Agent(BaseAgent):
             discount_factor: float,
         }
         """
+        if agent_config.get('name') is None or not (agent_config.get('name').lower() == 'q-learning agent' or agent_config.get('name').lower() == 'expected sarsa agent'):
+            raise AssertionError("Invalid agent name. Accepted agents: 'q-learning agent', 'expected sarsa agent'")
+        self.name = agent_config['name']
         self.device = agent_config['device']
         self.replay_buffer = ReplayBuffer(agent_config['replay_buffer_size'],
                                         agent_config['minibatch_size'],
@@ -113,7 +74,15 @@ class Q_Agent(BaseAgent):
         batch_indices = np.arange(batch_size)
         state_action_values = self.network(states)[batch_indices, actions]
 
-        next_state_action_values = self.current_q(next_states).max(1)[0].detach() * (1-terminals) # Q-learning
+        if self.name.lower() == 'q-learning agent':
+            next_state_action_values = self.current_q(next_states).max(1)[0].detach() * (1-terminals) # Q-learning
+        elif self.name.lower() == 'expected sarsa agent':
+            next_state_action_values = self.current_q(next_states).detach()
+            probabilities = self.softmax(next_state_action_values.cpu().numpy(), self.tau)
+            probabilities = torch.tensor(probabilities).to(self.device)
+            next_state_action_values = next_state_action_values*probabilities
+            next_state_action_values = next_state_action_values.sum(1)
+
         expected_state_action_values = next_state_action_values * self.discount + rewards
 
         loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.float())
@@ -130,9 +99,10 @@ class Q_Agent(BaseAgent):
         Returns:
             the action
         """
-        state = torch.tensor(state).to(self.device)
+        if not torch.is_tensor(state):
+            state = torch.tensor(state).to(self.device)
         action_values = self.network(state).cpu().detach().numpy()
-        probs_batch = softmax(action_values, self.tau)
+        probs_batch = self.softmax(action_values, self.tau)
         action = self.rand_generator.choice(self.num_actions, p=probs_batch.squeeze())
         return action
 
@@ -225,3 +195,45 @@ class Q_Agent(BaseAgent):
             return self.sum_rewards
         else:
             raise Exception("Unrecognized Message!")
+
+    def softmax(self, action_values, tau=1.0):
+        """
+        Uses softmax(x) = softmax(x-c) identity to resolve possible overflow from exponential of large numbers in softmax
+        Args:
+            action_values (Numpy array): A 2D array of shape (batch_size, num_actions). 
+                        The action-values computed by an action-value network.              
+            tau (float): The temperature parameter scalar. 
+                        𝜏 is the temperature parameter which controls how much the agent focuses on the highest valued 
+                        actions. The smaller the temperature, the more the agent selects the greedy action. 
+                        Conversely, when the temperature is high, the agent selects among actions more uniformly random.
+        Returns:
+            A 2D array of shape (batch_size, num_actions). Where each column is a probability distribution over
+            the actions representing the policy.
+        """
+        # Compute the preferences by dividing the action-values by the temperature parameter tau
+        preferences = action_values / tau
+        # Compute the maximum preference across the actions
+        max_preference = np.array([max(preference)/tau for preference in action_values])
+        
+        # Reshape max_preference array which has shape [Batch,] to [Batch, 1]. This allows NumPy broadcasting 
+        # when subtracting the maximum preference from the preference of each action.
+        reshaped_max_preference = max_preference.reshape((-1, 1))
+        
+        # Compute the numerator, i.e., the exponential of the preference - the max preference.
+        exp_preferences = np.array([np.exp(preference-max_preference) for preference, max_preference in zip(preferences, reshaped_max_preference)])
+        # Compute the denominator, i.e., the sum over the numerator along the actions axis.
+        sum_of_exp_preferences = exp_preferences.sum(axis=1)
+        
+        # Reshape sum_of_exp_preferences array which has shape [Batch,] to [Batch, 1] to  allow for NumPy broadcasting 
+        # when dividing the numerator by the denominator.
+        reshaped_sum_of_exp_preferences = sum_of_exp_preferences.reshape((-1, 1))
+        
+        # Compute the action probabilities according to the equation in the previous cell.
+        action_probs = exp_preferences / reshaped_sum_of_exp_preferences
+        
+        # squeeze() removes any singleton dimensions. It is used here because this function is used in the 
+        # agent policy when selecting an action (for which the batch dimension is 1.) As np.random.choice is used in 
+        # the agent policy and it expects 1D arrays, we need to remove this singleton batch dimension.
+        action_probs = action_probs.squeeze()
+
+        return action_probs

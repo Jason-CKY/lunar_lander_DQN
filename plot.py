@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-x = np.load("results\sum_reward_Q-Learning Agent.npy")
+x = np.load("results\q_learning\sum_reward_Q-Learning Agent.npy")
 print(x)
 print(x.shape)
 
