@@ -11,6 +11,7 @@ Base environment and agent is written in RL-Glue standard [2](http://www.jmlr.or
 ## Results
 <table align='center'>
 <tr align='center'>
+<td> type of agent </td>
 <td> reward sum for each episode </td>
 <td> last episode </td>
 </tr>
