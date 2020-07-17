@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import numpy as np
+from copy import deepcopy
 
 class DQN(nn.Module):
     """
@@ -13,15 +15,13 @@ class DQN(nn.Module):
             num_actions: int
         '''
         input_dim = network_config['state_dim']
-        hidden_dim = network_config['hidden_dim']
+        hidden_dim = network_config['num_hidden_units']
         output_dim = network_config['num_actions']
         super(DQN, self).__init__()
         self.main = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(hidden_dim // 2, output_dim)
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden_dim, output_dim)
         )
     
     def forward(self, x):

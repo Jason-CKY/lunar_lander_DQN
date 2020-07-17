@@ -36,6 +36,7 @@ def run_experiment(environment, agent, environment_parameters, agent_parameters,
     if not os.path.exists('results'):
         os.makedirs('results')
     path = os.path.join("results", "sum_reward_{}".format(save_name))
+    torch.save(rl_glue.agent.network.state_dict(), experiment_parameters['model_weights_save_path'])
     np.save(path, agent_sum_reward)
 
 def main():
@@ -44,15 +45,16 @@ def main():
     # Experiment parameters
     experiment_parameters = {
         "num_runs" : 1,
-        "num_episodes" : 10,
+        "num_episodes" : 500,
         # OpenAI Gym environments allow for a timestep limit timeout, causing episodes to end after 
-        # some number of timesteps. Here we use the default of 1000.
-        "timeout" : 1000
+        # some number of timesteps.
+        "timeout" : 5000,
+        'model_weights_save_path': 'weights/experiment.pt'
     }
 
     # Environment parameters
     environment_parameters = {
-        "record_frequency": 10,
+        "record_frequency": 500,
         "episode_dir": "episodes"
     }
 
@@ -63,11 +65,12 @@ def main():
     agent_parameters = {
         'network_config': {
             'state_dim': 8,
-            'hidden_dim': 128,
-            'num_actions': 4
+            'num_hidden_units': 256,
+            'num_actions': 4,
+            'seed': 0
         },
         'optimizer_config': {
-            'lr': 1e-3,
+            'step_size': 1e-3,
             'betas': (0.9, 0.999)
         },
         'device': device,

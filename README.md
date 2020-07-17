@@ -6,6 +6,16 @@ Environment is provided by the openAI gym [1](https://gym.openai.com/envs/LunarL
 Base environment and agent is written in RL-Glue standard [2](http://www.jmlr.org/papers/v10/tanner09a.html), providing the library and abstract classes to inherit from for reinforcement learning experiments.
 
 ## Results
+<table align='center'>
+<tr align='center'>
+<td> reward sum for each episode </td>
+<td> last episode </td>
+</tr>
+<tr>
+<td><img src = 'images\sum_rewards.png'> 
+<td><img src = 'episodes\openaigym.video.0.122.video000499.mp4'>
+</tr>
+</table>
 
 ## Lunar Lander Environment
 ### Rewards
@@ -39,8 +49,8 @@ experiment_parameters = {
     "num_runs" : 1,
     "num_episodes" : 10,
     # OpenAI Gym environments allow for a timestep limit timeout, causing episodes to end after 
-    # some number of timesteps. Here we use the default of 1000.
-    "timeout" : 1000
+    # some number of timesteps.
+    "timeout" : 5000
 }
 environment_parameters = {
     "record_frequency": 10,
@@ -49,7 +59,7 @@ environment_parameters = {
 agent_parameters = {
     'network_config': {
         'state_dim': 8,
-        'hidden_dim': 128,
+        'num_hidden_units': 256,
         'num_actions': 4
     },
     'optimizer_config': {
@@ -66,6 +76,21 @@ agent_parameters = {
 ```
 
 ## Dependencies
+* [Instructions for installing openAI gym environment in Windows](https://towardsdatascience.com/how-to-install-openai-gym-in-a-windows-environment-338969e24d30)
+* Tqdm
+* ffmpeg (conda install -c conda-forge ffmpeg)
+* pytorch (conda install pytorch torchvision cudatoolkit=10.2 -c pytorch)
+* numpy
+
+## How to use
+
+### Training model for lunar lander environment
 ```
-conda env create -f environment.yml
+git clone https://github.com/Jason-CKY/lunar_lander_DQN.git
+cd lunar_lander_DQN
+```
+Edit experiment parameters in main.py
+```
+python main.py
+python plot.py # for plot output
 ```
