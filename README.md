@@ -17,13 +17,13 @@ Base environment and agent is written in RL-Glue standard [2](http://www.jmlr.or
 </tr>
 <tr>
 <td> Q learning agent </td>
-<td><img src = 'images\q_learning_sum_rewards.png'> 
-<td><img src = 'images\q_learning_episode_500.gif'>
+<td><img src = 'model_weights\LunarLander-v2\q-learning\sum_rewards.png'> 
+<td><img src = 'model_weights\LunarLander-v2\q-learning\recording.gif'>
 </tr>
 <tr>
 <td> Expected sarsa agent </td>
-<td><img src = 'images\expected_sarsa_sum_rewards.png'> 
-<td><img src = 'images\expected_sarsa_episode_500.gif'>
+<td><img src = 'model_weights\LunarLander-v2\expected_sarsa\sum_rewards.png'> 
+<td><img src = 'model_weights\LunarLander-v2\expected_sarsa\recording.gif'>
 </tr>
 </table>
 
@@ -59,35 +59,45 @@ Four discrete actions available:
 
 ## Implementation Details
 ```
-experiment_parameters = {
-    "num_runs" : 1,
-    "num_episodes" : 10,
-    # OpenAI Gym environments allow for a timestep limit timeout, causing episodes to end after 
-    # some number of timesteps.
-    "timeout" : 5000
-}
-environment_parameters = {
-    "record_frequency": 10,
-    "episode_dir": "episodes"
-}
-agent_parameters = {
-    'network_config': {
-        'state_dim': 8,
-        'num_hidden_units': 256,
-        'num_actions': 4
-    },
-    'optimizer_config': {
-        'lr': 1e-3,
-        'betas': (0.9, 0.999)
-    },
-    'name': 'expected sarsa agent',
-    'device': 'cuda',
-    'replay_buffer_size': 50000,
-    'minibatch_size': 8,
-    'num_replay_updates_per_step': 4,
-    'gamma': 0.99,
-    'tau': 0.001
-}
+    # Experiment parameters
+    experiment_parameters = {
+        "num_episodes" : 500,
+        "checkpoint_freq": 100,
+        "print_freq": 1,
+        "load_checkpoint": None,
+        # OpenAI Gym environments allow for a timestep limit timeout, causing episodes to end after 
+        # some number of timesteps.
+        "timeout" : 1600
+    }
+    # Environment parameters
+    environment_parameters = {
+        "gym_environment": 'LunarLander-v2',
+        'solved_threshold': 200,
+        'seed': 0
+    }
+    # Agent parameters
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    agent_parameters = {
+        'network_config': {
+            'state_dim': 8,
+            'num_hidden_units': 256,
+            'action_dim': 4,
+            'seed': 0
+        },
+        'optimizer_config': {
+            'step_size': 1e-3,
+            'betas': (0.9, 0.999)
+        },
+        'name': 'q-learning',
+        'device': device,
+        'replay_buffer_size': 50000,
+        'minibatch_size': 64,
+        'num_replay_updates_per_step': 4,
+        'gamma': 0.99,
+        'tau': 0.001,
+        'checkpoint_dir': 'model_weights',
+        'seed': 0
+    }
 ```
 
 ## [Self implemented Softmax](https://github.com/Jason-CKY/lunar_lander_DQN/blob/7c0a3a8f581a11128acb9225791563a24a3db10f/Agents/q_agent.py#L199-L239)
@@ -113,4 +123,15 @@ git clone https://github.com/Jason-CKY/lunar_lander_DQN.git
 cd lunar_lander_DQN
 Edit experiment parameters in main.py
 python main.py
+```
+
+```
+usage: test.py [-h] [--env ENV] [--agent AGENT] [--checkpoint CHECKPOINT] [--gif]
+
+optional arguments:
+  -h, --help                show this help message and exit
+  --env ENV                 Environment name
+  --agent AGENT             Agent name (q-learning/expected_sarsa)
+  --checkpoint CHECKPOINT   Name of checkpoint.pth file under model_weights/env/agent/
+  --gif                     Save rendered episode as a gif to model_weights/env/agent/recording.gif
 ```

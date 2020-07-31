@@ -5,6 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch
 import numpy as np
+import os
 
 class Q_Agent(BaseAgent):
     def __init__(self):
@@ -25,22 +26,19 @@ class Q_Agent(BaseAgent):
             discount_factor: float,
         }
         """
-        if agent_config.get('name') is None or not (agent_config.get('name').lower() == 'q-learning agent' or agent_config.get('name').lower() == 'expected sarsa agent'):
-            raise AssertionError("Invalid agent name. Accepted agents: 'q-learning agent', 'expected sarsa agent'")
+        if agent_config.get('name') is None or not (agent_config.get('name').lower() == 'q-learning' or agent_config.get('name').lower() == 'expected_sarsa'):
+            raise AssertionError("Invalid agent name. Accepted agents: 'q-learning', 'expected_sarsa'")
         self.name = agent_config['name']
         self.device = agent_config['device']
         self.replay_buffer = ReplayBuffer(agent_config['replay_buffer_size'],
                                         agent_config['minibatch_size'],
                                         agent_config.get('seed'))
         self.network = DQN(agent_config['network_config']).to(self.device)     # The latest state of the network that is getting replay updates
-        self.current_q = DQN(agent_config['network_config']).to(self.device)
-        if agent_config.get('model_weights_load_path') is not None:
-            self.network.load_state_dict(torch.load(agent_config.get('model_weights_load_path')))
-            self.current_q.load_state_dict(torch.load(agent_config.get('model_weights_load_path')))
-        # self.optimizer = Adam(self.network.layer_sizes, agent_config["optimizer_config"])
+        self.network_target = DQN(agent_config['network_config']).to(self.device)
+
         optim_config = agent_config['optimizer_config']
         self.optimizer = optim.Adam(self.network.parameters(), lr=optim_config['step_size'], betas=optim_config['betas'])
-        self.num_actions = agent_config['network_config']['num_actions']
+        self.num_actions = agent_config['network_config']['action_dim']
         self.num_replay = agent_config['num_replay_updates_per_step']
         self.discount = agent_config['gamma']
         self.tau = agent_config['tau']
@@ -53,6 +51,16 @@ class Q_Agent(BaseAgent):
         self.sum_rewards = 0
         self.epsiode_steps = 0
 
+        checkpoint_dir = agent_config.get('checkpoint_dir')
+        if checkpoint_dir is None:
+            self.checkpoint_dir = 'model_weights'
+        else:
+            self.checkpoint_dir = checkpoint_dir
+        
+        if not os.path.isdir(self.checkpoint_dir):
+            os.makedirs(self.checkpoint_dir)
+
+
     def optimize_network(self, experiences):
         """
         Args:
@@ -60,30 +68,33 @@ class Q_Agent(BaseAgent):
                                     rewards, terminals, and next_states.
             discount (float): The discount factor.
             network (ActionValueNetwork): The latest state of the network that is getting replay updates.
-            current_q (ActionValueNetwork): The fixed network used for computing the targets, 
+            network_target (ActionValueNetwork): The fixed network used for computing the targets, 
                                             and particularly, the action-values at the next-states.
         """
-        
+
+        self.set_train()
         # Get states, action, rewards, terminals, and next_states from experiences
-        states, actions, rewards, terminals, next_states = map(list, zip(*experiences))
-        states = torch.tensor(np.concatenate(states)).to(self.device)
-        next_states = torch.tensor(np.concatenate(next_states)).to(self.device)
-        rewards = torch.tensor(rewards).to(self.device)
-        terminals = torch.tensor(terminals).to(self.device)
+        states, actions, rewards, terminals, next_states = experiences
+        states = torch.tensor(states).to(self.device).float()
+        next_states = torch.tensor(next_states).to(self.device).float()
+        actions = torch.tensor(actions).to(self.device)
+        rewards = torch.tensor(rewards).to(self.device).float()
+        terminals = torch.tensor(terminals).to(self.device).float()
         batch_size = states.shape[0]
         batch_indices = np.arange(batch_size)
         state_action_values = self.network(states)[batch_indices, actions]
 
-        if self.name.lower() == 'q-learning agent':
-            next_state_action_values = self.current_q(next_states).max(1)[0].detach() * (1-terminals) # Q-learning
-        elif self.name.lower() == 'expected sarsa agent':
-            next_state_action_values = self.current_q(next_states).detach()
+        if self.name.lower() == 'q-learning':
+            next_state_action_values = self.network_target(next_states).max(1)[0].detach() * (1-terminals.squeeze()) # Q-learning
+            # print(next_state_action_values.shape)
+        elif self.name.lower() == 'expected_sarsa':
+            next_state_action_values = self.network_target(next_states).detach()
             probabilities = self.softmax(next_state_action_values.cpu().numpy(), self.tau)
             probabilities = torch.tensor(probabilities).to(self.device)
             next_state_action_values = next_state_action_values*probabilities
             next_state_action_values = next_state_action_values.sum(1)
 
-        expected_state_action_values = next_state_action_values * self.discount + rewards
+        expected_state_action_values = next_state_action_values * self.discount + rewards.squeeze()
 
         loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.float())
         self.optimizer.zero_grad()
@@ -101,7 +112,7 @@ class Q_Agent(BaseAgent):
         """
         if not torch.is_tensor(state):
             state = torch.tensor(state).to(self.device)
-        action_values = self.network(state).cpu().detach().numpy()
+        action_values = self.network(state).cpu().detach().unsqueeze(0).numpy()
         probs_batch = self.softmax(action_values, self.tau)
         action = self.rand_generator.choice(self.num_actions, p=probs_batch.squeeze())
         return action
@@ -116,7 +127,7 @@ class Q_Agent(BaseAgent):
         """
         self.sum_rewards = 0
         self.episode_steps = 0
-        self.last_state = np.array([state])
+        self.last_state = np.array(state)
         self.last_action = self.policy(self.last_state)
         return self.last_action
 
@@ -135,7 +146,7 @@ class Q_Agent(BaseAgent):
 
         # Make state an array of shape (1, state_dim) to add a batch dimension and
         # to later match the get_action_values() and get_TD_update() functions
-        state = np.array([state])
+        state = np.array(state)
 
         # Select action
         action = self.policy(state)
@@ -145,7 +156,7 @@ class Q_Agent(BaseAgent):
         
         # Perform replay steps:
         if self.replay_buffer.size() > self.replay_buffer.minibatch_size:
-            self.current_q.load_state_dict(self.network.state_dict())
+            self.network_target.load_state_dict(self.network.state_dict())
             for _ in range(self.num_replay):
                 # Get sample experiences from the replay buffer
                 experiences = self.replay_buffer.sample()     
@@ -173,7 +184,7 @@ class Q_Agent(BaseAgent):
         
         # Perform replay steps:
         if self.replay_buffer.size() > self.replay_buffer.minibatch_size:
-            self.current_q.load_state_dict(self.network.state_dict())
+            self.network_target.load_state_dict(self.network.state_dict())
             for _ in range(self.num_replay):
                 # Get sample experiences from the replay buffer
                 experiences = self.replay_buffer.sample()
@@ -237,3 +248,68 @@ class Q_Agent(BaseAgent):
         action_probs = action_probs.squeeze()
 
         return action_probs
+
+    def set_train(self):
+        '''
+        Set networks into train mode
+        '''
+        self.network.train()
+        self.network_target.train()
+
+    def set_eval(self):
+        '''
+        Set networks into eval mode
+        '''
+        self.network.eval()
+        self.network_target.eval()
+
+    def save_checkpoint(self, episode_num, solved=False):
+        """Saving networks and optimizer paramters to a file in 'checkpoint_dir'
+        Args:
+            episode_num: episode number of the current session
+        """
+        if solved:
+            checkpoint_name = os.path.join(self.checkpoint_dir, "solved.pth")
+        else:
+            checkpoint_name = os.path.join(self.checkpoint_dir, f"ep_{episode_num}_step_{self.episode_steps}.pth")
+        
+        print('saving checkpoint...')
+        checkpoint = {
+            'network': self.network.state_dict(),
+            'network_target': self.network_target.state_dict(),
+            'optimizer': self.optimizer.state_dict()
+        }
+        torch.save(checkpoint, checkpoint_name)
+        print(f"checkpoint saved at {checkpoint_name}")
+    
+    def get_latest_path(self):
+        """
+        get the latest created file in the checkpoint directory
+        Returns:
+            the latest saved model weights
+        """
+        files = [fname for fname in os.listdir(self.checkpoint_dir) if fname.endswith(".pth")]
+        filepaths = [os.path.join(self.checkpoint_dir, filepath) for filepath in files]
+        latest_file = max(filepaths, key=os.path.getctime)
+        return latest_file
+        
+    def load_checkpoint(self, checkpoint_path=None):
+        """
+        load networks and optimizer paramters from checkpoint_path
+        if checkpoint_path is None, use the latest created path from checkpoint_dir
+        Args:
+            checkpoint_path: path to checkpoint
+        """
+        if checkpoint_path is None:
+            checkpoint_path = self.get_latest_path()
+
+        if os.path.isfile(checkpoint_path):
+            key = 'cuda' if torch.cuda.is_available() else 'cpu'
+            checkpoint = torch.load(checkpoint_path, map_location=key)
+            self.network.load_state_dict(checkpoint['network'])
+            self.network_target.load_state_dict(checkpoint['network_target'])
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
+
+            print('checkpoint loaded at {}'.format(checkpoint_path))
+        else:
+            raise OSError("Checkpoint file not found.")    

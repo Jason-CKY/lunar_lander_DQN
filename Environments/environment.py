@@ -2,16 +2,12 @@ from .base_environment import BaseEnvironment
 import numpy as np
 import gym
 
-class LunarLanderEnvironment(BaseEnvironment):
+class Environment(BaseEnvironment):
     def env_init(self, env_info={}):
         '''
         Setup for the environment called when the environment first starts
         '''
-        self.env = gym.make("LunarLander-v2")
-        freq = env_info.get("record_frequency")
-        if freq is None:
-            freq = 1
-        self.env = gym.wrappers.Monitor(self.env, env_info['recording_dir'], video_callable=lambda episode_id: ((episode_id+1)%freq==0 or episode_id==0))
+        self.env = gym.make(env_info.get("gym_environment"))
         self.env.seed(0)
     
     def env_start(self):

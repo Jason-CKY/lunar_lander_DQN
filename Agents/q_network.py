@@ -16,7 +16,7 @@ class DQN(nn.Module):
         '''
         input_dim = network_config['state_dim']
         hidden_dim = network_config['num_hidden_units']
-        output_dim = network_config['num_actions']
+        output_dim = network_config['action_dim']
         super(DQN, self).__init__()
         self.main = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
