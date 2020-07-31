@@ -6,7 +6,7 @@ Environment is provided by the openAI gym [1](https://gym.openai.com/envs/LunarL
 Base environment and agent is written in RL-Glue standard [2](http://www.jmlr.org/papers/v10/tanner09a.html), providing the library and abstract classes to inherit from for reinforcement learning experiments.
 
 ## Updates:
-* Added expected sarsa functionality. Change agent_parameter['name'] to either 'q-learning agent' or 'expected sarsa agent' for each type of learning algorithm.
+* Added expected sarsa functionality. Change agent_parameter['name'] to either 'q-learning' or 'expected_sarsa' for each type of learning algorithm.
 
 ## Results
 <table align='center'>
